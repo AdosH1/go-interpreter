@@ -11,7 +11,7 @@ type Parser struct {
 	l         *lexer.Lexer
 	currToken token.Token
 	peekToken token.Token
-	errors []string
+	errors    []string
 }
 
 func (p *Parser) ParseProgram() *ast.Program {
@@ -32,6 +32,8 @@ func (p *Parser) parseStatement() ast.Statement {
 	switch p.currToken.Type {
 	case token.LET:
 		return p.parseLetStatement()
+	case token.RETURN:
+		return p.parseReturnStatement()
 	default:
 		return nil
 	}
@@ -50,6 +52,19 @@ func (p *Parser) parseLetStatement() *ast.LetStatement {
 	}
 
 	// TODO: Skip the expressions until a semicolon
+	for !p.currTokenIs(token.SEMICOLON) {
+		p.nextToken()
+	}
+	return statement
+}
+
+func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
+	statement := &ast.ReturnStatement{Token: p.currToken}
+
+	p.nextToken()
+
+	// TODO: Skipping expressions until a semicolon
+
 	for !p.currTokenIs(token.SEMICOLON) {
 		p.nextToken()
 	}
@@ -90,7 +105,7 @@ func (p *Parser) Errors() []string {
 
 func New(l *lexer.Lexer) *Parser {
 	p := &Parser{
-		l: l,
+		l:      l,
 		errors: []string{},
 	}
 	// Read 2 tokens for curr / peek token

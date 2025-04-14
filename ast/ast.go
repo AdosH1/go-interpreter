@@ -11,18 +11,28 @@ func (p *Program) TokenLiteral() string {
 
 type LetStatement struct {
 	Token token.Token
-	Name *Identifier
+	Name  *Identifier
 	Value Expression
 }
+
 func (l *LetStatement) TokenLiteral() string { return l.Token.Literal }
-func (l *LetStatement) statementNode() {}
+func (l *LetStatement) statementNode()       {}
+
+type ReturnStatement struct {
+	Token token.Token
+	Value Expression
+}
+
+func (r *ReturnStatement) TokenLiteral() string { return r.Token.Literal }
+func (r *ReturnStatement) statementNode()       {}
 
 type Identifier struct {
 	Token token.Token
 	Value string
 }
+
 func (i *Identifier) TokenLiteral() string { return i.Token.Literal }
-func (i *Identifier) expressionNode() {}
+func (i *Identifier) expressionNode()      {}
 
 type Program struct {
 	Statements []Statement

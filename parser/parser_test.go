@@ -66,6 +66,35 @@ func testLetStatement(t *testing.T, statement ast.Statement, name string) bool {
 	return true
 }
 
+func TestIdentifierExpression(t *testing.T) {
+	input := "foobar;"
+	l := lexer.New(input)
+	p := New(l)
+	program := p.ParseProgram()
+	checkParseErrors(t, p)
+
+	if len(program.Statements) != 1 {
+		t.Fatalf("program.Statements has wrong length. got=%d", len(program.Statements))
+	}
+
+	statement, ok := program.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Fatalf("program.Statements[0] is not ast.ExpressionStatement. got=%T", program.Statements[0])
+	}
+
+	identifier, ok := statement.Value.(*ast.Identifier)
+	if !ok {
+		t.Fatalf("statement.Value is not ast.Identifier. got=%T", statement.Value)
+	}
+
+	if identifier.Value != "foobar" {
+		t.Errorf("identifier.Value not %q. got=%q", "foobar", identifier.Value)
+	}
+	if identifier.TokenLiteral() != "foobar" {
+		t.Errorf("identifier.TokenLiteral not %q. got=%q", "foobar", identifier.TokenLiteral())
+	}
+}
+
 func TestReturnStatements(t *testing.T) {
 	input := `
 	return 5;

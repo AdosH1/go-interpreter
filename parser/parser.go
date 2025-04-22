@@ -8,11 +8,20 @@ import (
 )
 
 type Parser struct {
-	l         *lexer.Lexer
+	l *lexer.Lexer
+
 	currToken token.Token
 	peekToken token.Token
-	errors    []string
+
+	prefixParseFuncs map[token.TokenType]prefixParseFunc
+	infixParseFuncs  map[token.TokenType]infixParseFunc
+	errors           []string
 }
+
+type (
+	prefixParseFunc func() ast.Expression
+	infixParseFunc  func(ast.Expression) ast.Expression
+)
 
 func (p *Parser) ParseProgram() *ast.Program {
 	program := &ast.Program{}
@@ -35,7 +44,7 @@ func (p *Parser) parseStatement() ast.Statement {
 	case token.RETURN:
 		return p.parseReturnStatement()
 	default:
-		return nil
+		return p.parseExpressionStatement()
 	}
 }
 
@@ -69,6 +78,34 @@ func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
 		p.nextToken()
 	}
 	return statement
+}
+
+func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
+	statement := &ast.ExpressionStatement{Token: p.currToken}
+	statement.Value = p.parseExpression(LOWEST)
+
+	if p.peekTokenIs(token.SEMICOLON) {
+		p.nextToken()
+	}
+
+	return statement
+}
+
+func (p *Parser) parseExpression(precedence int) ast.Expression {
+	prefix := p.prefixParseFuncs[p.currToken.Type]
+	if prefix == nil {
+		return nil
+	}
+	leftExp := prefix()
+	return leftExp
+}
+
+func (p *Parser) registerPrefix(tokenType token.TokenType, fn prefixParseFunc) {
+	p.prefixParseFuncs[tokenType] = fn
+}
+
+func (p *Parser) registerInfix(tokenType token.TokenType, fn infixParseFunc) {
+	p.infixParseFuncs[tokenType] = fn
 }
 
 func (p *Parser) currTokenIs(t token.TokenType) bool {
@@ -111,5 +148,24 @@ func New(l *lexer.Lexer) *Parser {
 	// Read 2 tokens for curr / peek token
 	p.nextToken()
 	p.nextToken()
+
+	p.prefixParseFuncs = make(map[token.TokenType]prefixParseFunc)
+	p.registerPrefix(token.IDENT, p.parseIdentifier)
+
 	return p
 }
+
+func (p *Parser) parseIdentifier() ast.Expression {
+	return &ast.Identifier{Token: p.currToken, Value: p.currToken.Literal}
+}
+
+const (
+	_ int = iota
+	LOWEST
+	EQUALS               // ==
+	LESS_OR_GREATER_THAN // > or <
+	SUM                  // +
+	PRODUCT              // *
+	PREFIX               // -X or +X
+	CALL                 // myFunc()
+)

@@ -3,6 +3,7 @@ package parser
 import (
 	"interpreter/ast"
 	"interpreter/lexer"
+	"strconv"
 	"testing"
 )
 
@@ -122,6 +123,44 @@ func TestIntegerLiteralExpression(t *testing.T) {
 	}
 }
 
+func TestParsingPrefixExpression(t *testing.T) {
+	prefixTests := []struct {
+		input        string
+		operator     string
+		integarValue int64
+	}{
+		{"!5;", "!", 5},
+		{"!15;", "!", 15},
+	}
+
+	for _, tt := range prefixTests {
+		l := lexer.New(tt.input)
+		p := New(l)
+		program := p.ParseProgram()
+		checkParseErrors(t, p)
+
+		if len(program.Statements) != 1 {
+			t.Fatalf("program.Statements has wrong length. got=%d", len(program.Statements))
+		}
+
+		statement, ok := program.Statements[0].(*ast.ExpressionStatement)
+		if !ok {
+			t.Fatalf("program.Statements[0] is not ast.ExpressionStatement. got=%T", program.Statements[0])
+		}
+		expression, ok := statement.Value.(*ast.PrefixExpression)
+		if !ok {
+			t.Fatalf("statement.Value is not ast.PrefixExpression. got=%T", statement.Value)
+		}
+		if expression.Operator != tt.operator {
+			t.Errorf("expression.Operator not %q. got=%q", tt.operator, expression.Operator)
+		}
+		if !testIntegerLiteral(t, expression.RightExpression, tt.integarValue) {
+			t.Errorf("IntegerLiteral not %d. got=%d", tt.integarValue, expression.RightExpression)
+			return
+		}
+	}
+}
+
 func TestReturnStatements(t *testing.T) {
 	input := `
 	return 5;
@@ -162,4 +201,23 @@ func checkParseErrors(t *testing.T, p *Parser) {
 		t.Errorf("Parser error: %s", msg)
 	}
 	t.FailNow()
+}
+
+func testIntegerLiteral(t *testing.T, integerLiteral ast.Expression, expectedValue int64) bool {
+	integer, ok := integerLiteral.(*ast.IntegerLiteral)
+	if !ok {
+		t.Errorf("IntegerLiteral not ast.IntegerLiteral. got=%T", integerLiteral)
+		return false
+	}
+
+	if integer.Value != expectedValue {
+		t.Errorf("IntegerLiteral not %d. got=%d", expectedValue, integer.Value)
+		return false
+	}
+
+	if integer.TokenLiteral() != strconv.FormatInt(expectedValue, 10) {
+		t.Errorf("IntegerLiteral not %q. got=%q", strconv.FormatInt(expectedValue, 10), integer.TokenLiteral())
+		return false
+	}
+	return true
 }

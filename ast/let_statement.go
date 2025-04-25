@@ -5,6 +5,8 @@ import (
 	"interpreter/token"
 )
 
+var _ Statement = (*LetStatement)(nil)
+
 type LetStatement struct {
 	Token token.Token
 	Name  *Identifier

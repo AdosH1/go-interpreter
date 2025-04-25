@@ -2,6 +2,8 @@ package ast
 
 import "interpreter/token"
 
+var _ Statement = (*ExpressionStatement)(nil)
+
 type ExpressionStatement struct {
 	Token token.Token
 	Value Expression

@@ -161,6 +161,54 @@ func TestParsingPrefixExpression(t *testing.T) {
 	}
 }
 
+func TestParsingInfixExpression(t *testing.T) {
+	infixTests := []struct {
+		input         string
+		expectedLeft  int64
+		operator      string
+		expectedRight int64
+	}{
+		{"5 + 5;", 5, "+", 5},
+		{"5 - 5;", 5, "-", 5},
+		{"5 * 5;", 5, "*", 5},
+		{"5 / 5;", 5, "/", 5},
+		{"5 > 5;", 5, ">", 5},
+		{"5 < 5;", 5, "<", 5},
+		{"5 == 5;", 5, "==", 5},
+		{"5 != 5;", 5, "!=", 5},
+	}
+
+	for _, tt := range infixTests {
+		l := lexer.New(tt.input)
+		p := New(l)
+		program := p.ParseProgram()
+		checkParseErrors(t, p)
+
+		if len(program.Statements) != 1 {
+			t.Fatalf("program.Statements has wrong length. got=%d", len(program.Statements))
+		}
+		statement, ok := program.Statements[0].(*ast.ExpressionStatement)
+		if !ok {
+			t.Fatalf("program.Statements[0] is not ast.ExpressionStatement. got=%T", program.Statements[0])
+		}
+
+		expression, ok := statement.Value.(*ast.InfixExpression)
+		if !ok {
+			t.Fatalf("statement.Expression is not ast.InfixExpression. got=%T", statement)
+		}
+
+		if !testIntegerLiteral(t, expression.Left, tt.expectedLeft) {
+			return
+		}
+		if expression.Operator != tt.operator {
+			t.Errorf("expression.Operator not %q. got=%q", tt.operator, expression.Operator)
+		}
+		if !testIntegerLiteral(t, expression.Right, tt.expectedRight) {
+			return
+		}
+	}
+}
+
 func TestReturnStatements(t *testing.T) {
 	input := `
 	return 5;

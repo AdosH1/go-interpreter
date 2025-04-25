@@ -113,6 +113,18 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 		return nil
 	}
 	leftExp := prefix()
+
+	for !p.peekTokenIs(token.SEMICOLON) && precedence < p.peekPrecedence() {
+		infix := p.infixParseFuncs[p.peekToken.Type]
+		if infix == nil {
+			return leftExp
+		}
+
+		p.nextToken()
+
+		leftExp = infix(leftExp)
+	}
+
 	return leftExp
 }
 
@@ -176,6 +188,16 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.BANG, p.parsePrefixExpression)
 	p.registerPrefix(token.MINUS, p.parsePrefixExpression)
 
+	p.infixParseFuncs = make(map[token.TokenType]infixParseFunc)
+	p.registerInfix(token.PLUS, p.parseInfixExpression)
+	p.registerInfix(token.MINUS, p.parseInfixExpression)
+	p.registerInfix(token.ASTERISK, p.parseInfixExpression)
+	p.registerInfix(token.SLASH, p.parseInfixExpression)
+	p.registerInfix(token.EQ, p.parseInfixExpression)
+	p.registerInfix(token.NE, p.parseInfixExpression)
+	p.registerInfix(token.LT, p.parseInfixExpression)
+	p.registerInfix(token.GT, p.parseInfixExpression)
+
 	return p
 }
 
@@ -192,6 +214,44 @@ func (p *Parser) parsePrefixExpression() ast.Expression {
 
 	expression.RightExpression = p.parseExpression(PREFIX)
 	return expression
+}
+
+func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
+	expression := &ast.InfixExpression{
+		Token:    p.currToken,
+		Operator: p.currToken.Literal,
+		Left:     left,
+	}
+	precedence := p.currPrecedence()
+	p.nextToken()
+	expression.Right = p.parseExpression(precedence)
+
+	return expression
+}
+
+var precedences = map[token.TokenType]int{
+	token.EQ:       EQUALS,
+	token.NE:       EQUALS,
+	token.LT:       LESS_OR_GREATER_THAN,
+	token.GT:       LESS_OR_GREATER_THAN,
+	token.PLUS:     SUM,
+	token.MINUS:    SUM,
+	token.ASTERISK: PRODUCT,
+	token.SLASH:    PRODUCT,
+}
+
+func (p *Parser) peekPrecedence() int {
+	if p, ok := precedences[p.peekToken.Type]; ok {
+		return p
+	}
+	return LOWEST
+}
+
+func (p *Parser) currPrecedence() int {
+	if p, ok := precedences[p.peekToken.Type]; ok {
+		return p
+	}
+	return LOWEST
 }
 
 const (

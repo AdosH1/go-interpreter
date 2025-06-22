@@ -13,5 +13,5 @@ type PrefixExpression struct {
 func (p *PrefixExpression) expressionNode()      {}
 func (p *PrefixExpression) TokenLiteral() string { return p.Token.Literal }
 func (p *PrefixExpression) String() string {
-	return "(" + p.Operator + " " + p.RightExpression.String() + ")"
+	return "(" + p.Operator + p.RightExpression.String() + ")"
 }

@@ -113,17 +113,21 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 		return nil
 	}
 	leftExp := prefix()
+	fmt.Printf("\nPrefix: %s", leftExp.String())
 
 	for !p.peekTokenIs(token.SEMICOLON) && precedence < p.peekPrecedence() {
 		infix := p.infixParseFuncs[p.peekToken.Type]
+
 		if infix == nil {
 			return leftExp
 		}
 
+		fmt.Printf("\nInfix token type: %+v", p.peekToken.Type)
 		p.nextToken()
 
 		leftExp = infix(leftExp)
 	}
+	fmt.Printf("\npostfix leftExp: %s", leftExp.String())
 
 	return leftExp
 }
@@ -213,6 +217,7 @@ func (p *Parser) parsePrefixExpression() ast.Expression {
 	p.nextToken()
 
 	expression.RightExpression = p.parseExpression(PREFIX)
+	fmt.Printf("\nPrefix: %s", expression.String())
 	return expression
 }
 
@@ -248,7 +253,7 @@ func (p *Parser) peekPrecedence() int {
 }
 
 func (p *Parser) currPrecedence() int {
-	if p, ok := precedences[p.peekToken.Type]; ok {
+	if p, ok := precedences[p.currToken.Type]; ok {
 		return p
 	}
 	return LOWEST
